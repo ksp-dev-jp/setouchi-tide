@@ -1137,6 +1137,24 @@
     });
   }
 
+  // 記事内の動画。クリックされるまで YouTube を読み込まず、押されたら
+  // youtube-nocookie.com のプレーヤーに差し替える(lib/guide-tsuriaruki.mjs)。
+  function youtubeEmbeds() {
+    document.querySelectorAll('[data-yt]').forEach(function (box) {
+      var btn = box.querySelector('.yt-play');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var f = document.createElement('iframe');
+        f.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(box.dataset.yt) + '?autoplay=1&rel=0';
+        f.title = box.dataset.ytTitle || '';
+        f.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
+        f.allowFullscreen = true;
+        f.referrerPolicy = 'strict-origin-when-cross-origin';
+        box.replaceChildren(f);
+      });
+    });
+  }
+
   // 例外は握り潰さずコンソールに出す。1つの機能が落ちても他は動かしたいので
   // 個別に囲うが、黙って消すと地図が真っ白でも気づけない。
   function run(name, fn) {
@@ -1155,6 +1173,7 @@
     run('homeExperience', homeExperience);
     run('offlineCache', offlineCache);
     run('tables', tables);
+    run('youtubeEmbeds', youtubeEmbeds);
   }
 
   if (document.readyState === 'loading') {

@@ -48,11 +48,11 @@ test('年間要約と比較図は折りたたみの外で表示される', () =>
   assert.ok(html.slice(details).startsWith('<details class="fold">'));
 });
 
-test('既存20記事すべてに図解、参考資料、更新日がある', () => {
+test('全21記事に図解、参考資料、更新日がある', () => {
   const nat = { year:2026, pf: { n:239, avg:124, spring:180, neap:69,
     dayLowMonthCount:Array(12).fill(20), nightLowMonthCount:Array(12).fill(20) },
     regions:[{r:{name:'中国'},pf:{avg:168}}] };
-  assert.equal(GUIDES.length, 20);
+  assert.equal(GUIDES.length, 21);
   for (const g of GUIDES) {
     const html = guidePage(g, '2026-10-01', nat);
     assert.ok(html.includes('class="guide-visual"'), g.slug);
