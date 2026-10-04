@@ -473,6 +473,9 @@ for (const r of regionsWithStations) {
   write(paths.region(r), regionPage({
     r, prefs, count: all.length, allStations: all,
     profile,
+    // 海ごとの比較表に使う、公式観測点それぞれの年間値。
+    stationStats: all.filter(st => !st.jmaAnchor)
+      .map(st => ({ st, sp: stationProfiles.get(st.id), year: YEAR })),
     // 地方ページでは県ごとの干満差を並べて比べられるようにする。
     prefProfiles: prefs.map(p => ({ p, pf: prefProfileOf(p.id) }))
       .filter(x => x.pf),

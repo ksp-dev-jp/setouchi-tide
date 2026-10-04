@@ -34,3 +34,22 @@ test('大潮の干潮時刻: 外洋型は約12時間25分おき、浅海型は�
   const scattered = Array.from({ length: 40 }, (_, i) => (i * 7.3) % 24);
   assert.equal(springLowTimes(scattered), null);
 });
+
+test('地方内の公式観測点はどれか1つの海にだけ入っている', async () => {
+  const { REGION_GUIDES } = await import('../lib/region-guides.mjs');
+  const { REGIONS } = await import('../lib/stations.mjs');
+  for (const r of REGIONS) {
+    const g = REGION_GUIDES[r.id];
+    assert.ok(g && g.intro.length && g.tips.length >= 2, r.id);
+    const names = official.filter(s => r.prefs.includes(s.pref)).map(s => s.name).sort();
+    assert.deepEqual(g.seas.flatMap(s => s.stations).sort(), names, r.id);
+  }
+});
+
+test('海域の干潮時刻の幅: 日付をまたぐ地点も同じ組にまとまる', async () => {
+  const { springLowRangeLabel } = await import('../lib/tide-profile.mjs');
+  // 東京(11.5/23.5) と 神津島(0.0/12.0) → 11時半〜12時・23時半〜0時
+  assert.equal(springLowRangeLabel([[11.5, 23.5], [0, 12], null]), '11時半〜12時ごろ・23時半〜0時ごろ');
+  assert.equal(springLowRangeLabel([[4, 16.5], [4, 16.5]]), '4時ごろ・16時半ごろ');
+  assert.equal(springLowRangeLabel([null]), null);
+});

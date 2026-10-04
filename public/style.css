@@ -575,6 +575,8 @@ table.coastsum td { font-family: var(--mono); font-size: 14px; white-space: nowr
 table.coastsum { min-width: 0; }
 table.coastsum thead th { white-space: normal; }
 table.coastsum thead th:first-child { white-space: nowrap; }
+table.seasum tbody th { white-space: normal; }
+table.seasum tbody th small { color: var(--dim); font-weight: 400; }
 table.week tr.today { background: rgba(176, 106, 63, .07); }
 table.week .wx { font-size: 14.5px; white-space: nowrap; }
 table.week .wx .week-wx-icon { display: inline-block; width: 24px; height: 24px; margin: 0 5px -7px 0; color: var(--blue); }
