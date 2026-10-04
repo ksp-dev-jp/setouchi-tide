@@ -570,6 +570,11 @@ table.week .lo, table.prefsum .lo { font-family: var(--mono); color: var(--warm)
 table.week .mn, table.prefsum .rg { font-family: var(--mono); font-size: 14px; color: var(--mut); }
 table.week .hi small, table.week .lo small,
 table.prefsum .hi small, table.prefsum .lo small { color: var(--dim); font-size: 12.5px; }
+table.coastsum tr.grp th { padding-top: 14px; font-size: 13px; color: var(--mut); font-weight: 600; border-bottom: 1px solid var(--line); }
+table.coastsum td { font-family: var(--mono); font-size: 14px; white-space: nowrap; }
+table.coastsum { min-width: 0; }
+table.coastsum thead th { white-space: normal; }
+table.coastsum thead th:first-child { white-space: nowrap; }
 table.week tr.today { background: rgba(176, 106, 63, .07); }
 table.week .wx { font-size: 14.5px; white-space: nowrap; }
 table.week .wx .week-wx-icon { display: inline-block; width: 24px; height: 24px; margin: 0 5px -7px 0; color: var(--blue); }

@@ -453,6 +453,9 @@ for (const p of prefsWithStations) {
     p, r: region(p.region), rows, ymd: todayKey, dateJa,
     // 県の潮汐の性格。気象庁の年次潮位表から実測で出す(lib/tide-profile.mjs)。
     profile: prefProfileOf(p.id),
+    // 海域ごとの比較表に使う、公式観測点それぞれの年間値。
+    stationStats: list.filter(st => !st.jmaAnchor)
+      .map(st => ({ st, sp: stationProfiles.get(st.id), year: YEAR })),
   }), { changefreq: 'daily', priority: 0.8 });
 }
 
