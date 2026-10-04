@@ -34,6 +34,7 @@ import { ACTIVITIES, activityPage, activityIndexPage } from './lib/activities.mj
 import { stationApiJSON } from './lib/api.mjs';
 import { areaProfile, stationProfile, highTideLag } from './lib/tide-profile.mjs';
 import { stationNoteHtml, stationNoteSummary, stationNoteChart } from './lib/station-notes.mjs';
+import { PREF_GUIDES } from './lib/pref-guides.mjs';
 import { esc } from './lib/html.mjs';
 import { stationLabel } from './lib/station-quality.mjs';
 import { stationQuality } from './lib/station-quality.mjs';
@@ -230,7 +231,20 @@ function stationNoteFor(st, neighbors) {
     summary: stationNoteSummary(note),
     chart: stationNoteChart(note),
     html: stationNoteHtml(note),
+    sea: seaOf(st),
   };
+}
+
+// 地点が面している海。都道府県ページの手書きの海域区分(lib/pref-guides.mjs)から
+// 引き、同じ海域のほかの観測点と年間平均の干満差を添える。
+function seaOf(st) {
+  const coast = PREF_GUIDES[st.pref]?.coasts.find(c => c.stations.includes(st.name));
+  if (!coast) return null;
+  const mates = coast.stations.filter(n => n !== st.name)
+    .map(n => stations.find(s => s.name === n && s.pref === st.pref && !s.jmaAnchor))
+    .filter(s => s && stationProfiles.has(s.id))
+    .map(s => ({ st: s, avg: stationProfiles.get(s.id).avg }));
+  return { name: coast.name, note: coast.note, mates, springLow: stationProfiles.get(st.id)?.springLow ?? null };
 }
 
 // ---- 天気予報 -------------------------------------------------------
