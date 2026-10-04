@@ -69,7 +69,7 @@
     var a = levels[Math.max(0, idx - 1)], b = levels[Math.min(143, idx + 1)];
     var span = (Math.min(143, idx + 1) - Math.max(0, idx - 1)) / 6;
     var rate = span > 0 ? (b - a) / span : 0;
-    var dir = rate > 3 ? '上げ潮' : rate < -3 ? '下げ潮' : '転流';
+    var dir = rate > 3 ? '上げ潮' : rate < -3 ? '下げ潮' : '変化小';
 
     // 次の満潮・干潮。10分毎の系列から極値を探すと公式値と数分ずれ、
     // すぐ下の表と食い違うので、気象庁の値(data-ext)をそのまま使う。
@@ -477,7 +477,7 @@
 
   function activityWindowDirection(levels, w) {
     var delta = levels[w.end] - levels[w.start];
-    return delta > 0 ? ['up', '上げ潮', '↗'] : delta < 0 ? ['down', '下げ潮', '↘'] : ['turn', '転流前後', '→'];
+    return delta > 0 ? ['up', '上げ潮', '↗'] : delta < 0 ? ['down', '下げ潮', '↘'] : ['turn', '潮位の変化小', '→'];
   }
 
   function markActivityCandidates(windows) {
@@ -612,7 +612,7 @@
       if (nowEl) {
         var idx = Math.min(143, Math.max(0, Math.round(nowHourJST() * 6)));
         var d = activityDirection(levels, idx);
-        var labels = d === 'up' ? ['↗', '上げ潮'] : d === 'down' ? ['↘', '下げ潮'] : ['→', '転流'];
+        var labels = d === 'up' ? ['↗', '上げ潮'] : d === 'down' ? ['↘', '下げ潮'] : ['→', '変化小'];
         var matches = windows.some(function (w) { return idx >= w.start && idx <= w.end; });
         nowEl.textContent = levels[idx] + 'cm ' + labels[0] + ' ' + labels[1] + (matches ? '・条件内' : '・条件外');
         nowEl.classList.toggle('match', matches);

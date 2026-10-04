@@ -33,7 +33,7 @@ import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
 import { ACTIVITIES, activityPage, activityIndexPage } from './lib/activities.mjs';
 import { stationApiJSON } from './lib/api.mjs';
 import { areaProfile, stationProfile, highTideLag } from './lib/tide-profile.mjs';
-import { stationNoteHtml } from './lib/station-notes.mjs';
+import { stationNoteHtml, stationNoteSummary, stationNoteChart } from './lib/station-notes.mjs';
 import { esc } from './lib/html.mjs';
 import { stationLabel } from './lib/station-quality.mjs';
 import { stationQuality } from './lib/station-quality.mjs';
@@ -218,15 +218,18 @@ function stationNoteFor(st, neighbors) {
     lag: highTideLag(jma[st.jma], jma[near.st.jma], YEAR),
     avg: stationProfiles.get(near.st.id).avg, ownAvg: sp.avg,
   } : null;
+  const note = {
+    sp, year: YEAR, name: stationLabel(st),
+    rank: nationalRank.get(st.id), total: profiledOfficial.length,
+    prefName: p.name, prefAvg: prefProfileOf(st.pref)?.avg,
+    prefRank: prefList.findIndex(s => s.id === st.id) + 1, prefN: prefList.length,
+    nb, guideHref: paths.guide('kisetsu-kanchou'),
+  };
   return {
     year: YEAR,
-    html: stationNoteHtml({
-      sp, year: YEAR, name: esc(stationLabel(st)),
-      rank: nationalRank.get(st.id), total: profiledOfficial.length,
-      prefName: p.name, prefAvg: prefProfileOf(st.pref)?.avg,
-      prefRank: prefList.findIndex(s => s.id === st.id) + 1, prefN: prefList.length,
-      nb, guideHref: paths.guide('kisetsu-kanchou'),
-    }),
+    summary: stationNoteSummary(note),
+    chart: stationNoteChart(note),
+    html: stationNoteHtml(note),
   };
 }
 
@@ -496,7 +499,7 @@ write(paths.home(), homePage({
 
 // about/privacy は動的データを含まない固定ページ。本文を編集したときだけ
 // この日付を書き換える(このビルドで内容を変えていないので据え置き)。
-const STATIC_PAGE_LASTMOD = '2026-09-13';
+const STATIC_PAGE_LASTMOD = '2026-10-01';
 write(url('about'), aboutPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
 write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
 
@@ -507,7 +510,7 @@ fs.writeFileSync(path.join(DIST, '404.html'), notFoundPage(), 'utf8');
 // ---- ガイド記事 -------------------------------------------------------
 // 「大潮とは」のような情報型クエリの受け皿。地点ページ群と違って動的データ
 // を含まないので、lib/guides.mjs の本文を編集したときだけ日付を書き換える。
-const GUIDE_LASTMOD = '2026-09-13';
+const GUIDE_LASTMOD = '2026-10-01';
 write(paths.guideIndex(), guideIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
 for (const g of GUIDES) {
   write(paths.guide(g.slug), guidePage(g, GUIDE_LASTMOD, national), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
