@@ -7,7 +7,7 @@ import { dayMsOf } from '../lib/util.mjs';
 import { celestialData } from '../lib/astro.mjs';
 import { stationPage, privacyPage } from '../lib/pages.mjs';
 import { weekTable } from '../lib/components.mjs';
-import { GUIDES, guidePage } from '../lib/guides.mjs';
+import { GUIDES, guidePage, guideDates } from '../lib/guides.mjs';
 import { stationNoteSummary, stationNoteChart } from '../lib/station-notes.mjs';
 
 const st = TIDE_STATIONS.find(s => s.name === '広島' && !s.jmaAnchor);
@@ -48,16 +48,19 @@ test('年間要約と比較図は折りたたみの外で表示される', () =>
   assert.ok(html.slice(details).startsWith('<details class="fold">'));
 });
 
-test('全21記事に図解、参考資料、更新日がある', () => {
+test('全21記事に図解、参考資料、公開日、著者がある', () => {
   const nat = { year:2026, pf: { n:239, avg:124, spring:180, neap:69,
     dayLowMonthCount:Array(12).fill(20), nightLowMonthCount:Array(12).fill(20) },
     regions:[{r:{name:'中国'},pf:{avg:168}}] };
   assert.equal(GUIDES.length, 21);
   for (const g of GUIDES) {
-    const html = guidePage(g, '2026-10-01', nat);
+    const html = guidePage(g, nat);
+    const { published, modified } = guideDates(g.slug);
     assert.ok(html.includes('class="guide-visual"'), g.slug);
     assert.ok(html.includes('class="guide-sources"'), g.slug);
-    assert.ok(html.includes('更新日：2026-10-01'), g.slug);
+    assert.ok(html.includes(`公開日：${published}`), g.slug);
+    assert.ok(published <= modified, g.slug);
+    assert.ok(html.includes(`"datePublished":"${published}"`) && html.includes('"author":{"@type":"Person"'), g.slug);
     assert.ok(!html.includes('undefined'), g.slug);
   }
 });

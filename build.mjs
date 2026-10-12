@@ -29,7 +29,7 @@ import {
   stationPage, dayPage, weekPage, monthPage, prefPage, regionPage, homePage, aboutPage,
   privacyPage, notFoundPage,
 } from './lib/pages.mjs';
-import { GUIDES, guidePage, guideIndexPage } from './lib/guides.mjs';
+import { GUIDES, guidePage, guideIndexPage, guideDates, guidesLastmod } from './lib/guides.mjs';
 import { ACTIVITIES, activityPage, activityIndexPage } from './lib/activities.mjs';
 import { stationApiJSON } from './lib/api.mjs';
 import { areaProfile, stationProfile, highTideLag } from './lib/tide-profile.mjs';
@@ -474,6 +474,9 @@ for (const p of prefsWithStations) {
 }
 
 // ---- 地方 -----------------------------------------------------------
+// 地方ページは今日の潮位を載せていない(年間集計と手書きの解説だけ)ので、
+// 解説(lib/region-guides.mjs)を書き換えたときだけ日付を変える。
+const REGION_LASTMOD = '2026-10-04';
 const regionsWithStations = REGIONS.filter(r => regionStationCount(r.id) > 0
   && (!SAMPLE || r.id === 'chugoku'));
 
@@ -493,7 +496,7 @@ for (const r of regionsWithStations) {
     // 地方ページでは県ごとの干満差を並べて比べられるようにする。
     prefProfiles: prefs.map(p => ({ p, pf: prefProfileOf(p.id) }))
       .filter(x => x.pf),
-  }), { changefreq: 'weekly', priority: 0.7 });
+  }), { changefreq: 'monthly', priority: 0.7, lastmod: REGION_LASTMOD });
 }
 // 全国の公式観測点の集計。季節ごとの干潮の傾向を記事に書くときに使う。
 const national = { year: YEAR, pf: areaProfile(stations.filter(s => !s.jmaAnchor), jma, YEAR), regions: regionProfiles };
@@ -519,9 +522,8 @@ write(paths.home(), homePage({
 
 // about/privacy は動的データを含まない固定ページ。本文を編集したときだけ
 // この日付を書き換える(このビルドで内容を変えていないので据え置き)。
-const STATIC_PAGE_LASTMOD = '2026-10-01';
-write(url('about'), aboutPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
-write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3, lastmod: STATIC_PAGE_LASTMOD });
+write(url('about'), aboutPage(), { changefreq: 'monthly', priority: 0.3, lastmod: '2026-10-12' });
+write(url('privacy'), privacyPage(), { changefreq: 'monthly', priority: 0.3, lastmod: '2026-10-05' });
 
 // GitHub Pages の404画面用。write() は使わない(dist/404/index.html ではなく
 // dist直下の404.htmlに置く必要があり、sitemapにも載せないため)。
@@ -529,19 +531,18 @@ fs.writeFileSync(path.join(DIST, '404.html'), notFoundPage(), 'utf8');
 
 // ---- ガイド記事 -------------------------------------------------------
 // 「大潮とは」のような情報型クエリの受け皿。地点ページ群と違って動的データ
-// を含まないので、lib/guides.mjs の本文を編集したときだけ日付を書き換える。
-const GUIDE_LASTMOD = '2026-10-01';
-write(paths.guideIndex(), guideIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
+// を含まないので、記事ごとの更新日(lib/guides.mjs の GUIDE_DATES)を使う。
+write(paths.guideIndex(), guideIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: guidesLastmod() });
 for (const g of GUIDES) {
-  write(paths.guide(g.slug), guidePage(g, GUIDE_LASTMOD, national), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
+  write(paths.guide(g.slug), guidePage(g, national), { changefreq: 'monthly', priority: 0.4, lastmod: guideDates(g.slug).modified });
 }
 
 // ---- 用途別の入口ページ -------------------------------------------------
 // 「釣り」「潮干狩り」「サーフィン」のような用途から来るクエリの受け皿。
 // 地点データは無く、地方一覧への案内だけなので地点数の変動にだけ追従する。
-write(paths.activityIndex(), activityIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: GUIDE_LASTMOD });
+write(paths.activityIndex(), activityIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: '2026-10-04' });
 for (const a of ACTIVITIES) {
-  write(paths.activity(a.slug), activityPage(a, homeRegions, national), { changefreq: 'weekly', priority: 0.5, lastmod: GUIDE_LASTMOD });
+  write(paths.activity(a.slug), activityPage(a, homeRegions, national), { changefreq: 'monthly', priority: 0.5, lastmod: a.updated });
 }
 
 // ---- sitemap / robots / manifest / llms.txt ---------------------------
