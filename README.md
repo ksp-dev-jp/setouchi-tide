@@ -43,6 +43,8 @@ node build.mjs --sample
 | `scripts/fetch-genbo.mjs` | 気象庁「潮汐観測資料」の毎時潮位偏差（実測 − 推算）を月ごとに取得し `.cache/genbo/` に保存する。1秒に1回まで。取得済みの月は取り直さない。毎日のビルドでは使わない |
 | `scripts/aggregate-genbo.mjs` | 上のキャッシュを地点ごとに集計し `lib/observed-stats.mjs` を書き出す。年が替わって1年分を足すときに `fetch-genbo.mjs --from/--to` と合わせて再実行する |
 | `lib/observed-stats.mjs` | 実測と潮見表のずれの集計（自動生成データ。手で編集しない）。記事 `/guide/shiomihyo-atari/`（`lib/guide-atari.mjs`）が本文の数字をここから組み立てる |
+| `lib/tools.mjs` | 水深計算 `/tool/suishin/` と潮干狩りカレンダー `/tool/shiohigari-calendar/`。ビルドで `data/tide/{コード}.json`（毎時の推算潮位1年分）と `data/shiohigari.json` を書き、計算は `public/app.js` がブラウザで行う |
+| `lib/holidays.mjs` | 国民の祝日（カレンダーの休日の印）。1年先まで無いとテストが落ちるので、年が明けたら翌々年を足す |
 | `scripts/generate-stations/` | OSMデータ（Overpass API）から近似地点候補を取得し `lib/stations.mjs` に追記するパイプライン。`node scripts/generate-stations/index.mjs` で全国分、`--sample <pref>` で1県だけ、`--dry-run` で書き込まずに件数だけ確認できる。再実行すると新規に見つかった分がさらに追記される（既存地点は変更しない）。公開Overpassサーバーは負荷でタグ取得が失敗することがあるが、失敗したタグはスキップして続行する仕様なので、日を改めて再実行すると回収できることがある |
 
 ## URL

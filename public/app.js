@@ -1137,6 +1137,170 @@
     });
   }
 
+  // ---- ツール(lib/tools.mjs) ----------------------------------------
+  // 25点の毎時潮位を自然三次スプラインで補間する。lib/tide.mjs の
+  // naturalCubicSpline を間隔1に固定して移したもので、地点ページの
+  // グラフと同じ曲線になる。
+  function hourlySpline(ys) {
+    var n = ys.length, i;
+    var alpha = [], l = [1], mu = [0], z = [0], c = [], b = [], d = [];
+    for (i = 1; i < n - 1; i++) alpha[i] = 3 * (ys[i + 1] - ys[i]) - 3 * (ys[i] - ys[i - 1]);
+    for (i = 1; i < n - 1; i++) {
+      l[i] = 4 - mu[i - 1];
+      mu[i] = 1 / l[i];
+      z[i] = (alpha[i] - z[i - 1]) / l[i];
+    }
+    c[n - 1] = 0;
+    for (i = n - 2; i >= 0; i--) {
+      c[i] = z[i] - mu[i] * c[i + 1];
+      b[i] = ys[i + 1] - ys[i] - (c[i + 1] + 2 * c[i]) / 3;
+      d[i] = (c[i + 1] - c[i]) / 3;
+    }
+    return function (x) {
+      var k = Math.max(0, Math.min(n - 2, Math.floor(x))), dx = x - k;
+      return ys[k] + b[k] * dx + c[k] * dx * dx + d[k] * dx * dx * dx;
+    };
+  }
+
+  var WDJ = ['日', '月', '火', '水', '木', '金', '土'];
+  function ymdLabel(ymd) {
+    var w = new Date(ymd + 'T00:00:00Z').getUTCDay();
+    return Number(ymd.slice(5, 7)) + '/' + Number(ymd.slice(8, 10)) + '(' + WDJ[w] + ')';
+  }
+  function signedCm(v) { return (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v) + 'cm'; }
+  function escHtml(s) {
+    return String(s).replace(/[&<>"]/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
+    });
+  }
+
+  function depthTool() {
+    var form = document.getElementById('depth-tool');
+    var out = document.getElementById('depth-result');
+    if (!form || !out) return;
+    var cache = {};
+    form.elements.time.value = fmtHM(Math.floor(nowHourJST() * 6) / 6);
+
+    function meters(cm) { return (cm / 100).toFixed(1) + 'm'; }
+    function depthText(cm) { return cm < 0 ? '水面より上に出ます' : '約' + meters(cm); }
+
+    function render(j, name) {
+      var el = form.elements;
+      var D = parseFloat(el.depth.value), date = el.date.value, time = el.time.value;
+      if (isNaN(D) || !date || !time) return;
+      var i = Math.round((Date.parse(date) - Date.parse(j.s)) / 86400000);
+      if (i < 0 || i >= j.n) {
+        out.innerHTML = '<p class="note">この日付の潮位はありません。' + escHtml(el.date.min) + '〜' + escHtml(el.date.max) + 'の日付を選んでください。</p>';
+        return;
+      }
+      var f = hourlySpline(j.h.slice(24 * i, 24 * i + 25));
+      var tp = time.split(':'), t = Number(tp[0]) + Number(tp[1]) / 60;
+      var base = Math.round(D * 100), lv = Math.round(f(t));
+      var mon = Number(date.slice(5, 7)) - 1;
+      var mm = j.mm && j.p95 != null ? j.mm[mon] : null;
+
+      var html = '<p class="tool-main">' + escHtml(ymdLabel(date)) + ' ' + escHtml(time) + 'の水深　<b>' + depthText(base + lv) + '</b></p>' +
+        '<p>' + escHtml(name) + 'の潮位' + lv + 'cm（気象庁の推算値）を、海図の水深' + D.toFixed(1) + 'mに足した値です。</p>';
+      if (mm != null) {
+        html += '<p>実測のずれで補正すると<b>' + depthText(base + lv + mm) + '</b>です（例年' + (mon + 1) + '月は潮見表より平均' + signedCm(mm) +
+          '）。ずれは95%の時間で±' + j.p95 + 'cm以内なので、およそ' + meters(Math.max(0, base + lv - j.p95)) + '〜' + meters(base + lv + j.p95) + 'の範囲です。</p>';
+      } else {
+        html += '<p class="note">この地点は実測のずれを集計していないため、補正した値は出していません。</p>';
+      }
+
+      // その日の干潮・満潮(10分刻みの極値)
+      var v = [], k, rows = '';
+      for (k = 0; k <= 144; k++) v.push(f(k / 6));
+      for (k = 1; k < 144; k++) {
+        var lo = v[k] < v[k - 1] && v[k] <= v[k + 1], hi = v[k] > v[k - 1] && v[k] >= v[k + 1];
+        if (!lo && !hi) continue;
+        var c = Math.round(v[k]);
+        rows += '<tr><th scope="row">' + (hi ? '満潮' : '干潮') + '</th><td>' + fmtHM(k / 6) + '</td><td class="rg">' + c + 'cm</td><td class="rg">' + depthText(base + c) + '</td>' +
+          (mm != null ? '<td class="rg">' + depthText(base + c + mm) + '</td>' : '') + '</tr>';
+      }
+      if (rows) {
+        html += '<div class="tw"><table class="prefsum"><thead><tr><th>この日</th><th>時刻</th><th>潮位</th><th>水深</th>' +
+          (mm != null ? '<th>補正後</th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+          '<p class="note">時刻は毎時の推算値を補間した10分単位の目安です。正確な満潮・干潮の時刻は地点ページで確認してください。</p>';
+      }
+      out.innerHTML = html;
+    }
+
+    function calc() {
+      var sel = form.elements.st, code = sel.value;
+      if (!code) return;
+      var name = sel.options[sel.selectedIndex].text;
+      if (cache[code]) { render(cache[code], name); return; }
+      out.innerHTML = '<p class="note">潮位を読み込んでいます…</p>';
+      fetch(form.dataset.srcBase + code + '.json')
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (j) { cache[code] = j; if (form.elements.st.value === code) render(j, name); })
+        .catch(function () { out.innerHTML = '<p class="note">潮位データを読み込めませんでした。時間をおいて試してください。</p>'; });
+    }
+    form.addEventListener('change', calc);
+    form.addEventListener('submit', function (e) { e.preventDefault(); calc(); });
+  }
+
+  function shiohigariCalendar() {
+    var form = document.getElementById('shc-tool');
+    var out = document.getElementById('shc-result');
+    if (!form || !out) return;
+    var sel = form.elements.st;
+    var groups = Array.prototype.map.call(sel.querySelectorAll('optgroup'), function (g) { return g.cloneNode(true); });
+    var data = null, loading = null;
+
+    // 地方で地点の選択肢を絞る(option の hidden は iOS Safari で効かないので作り直す)
+    function filterStations() {
+      var r = form.elements.r.value, cur = sel.value;
+      Array.prototype.forEach.call(sel.querySelectorAll('optgroup'), function (g) { g.remove(); });
+      groups.forEach(function (g) {
+        var c = g.cloneNode(true);
+        Array.prototype.forEach.call(c.querySelectorAll('option'), function (o) { if (r && o.dataset.r !== r) o.remove(); });
+        if (c.children.length) sel.appendChild(c);
+      });
+      sel.value = cur;
+      if (sel.value !== cur) sel.value = '';
+    }
+
+    function render() {
+      var s = data.st[Number(sel.value)];
+      if (!s) return;
+      var restOnly = form.elements.rest.checked;
+      var month = '', rows = '', count = 0;
+      s.d.forEach(function (d) {
+        var w = new Date(d[0] + 'T00:00:00Z').getUTCDay(), hol = data.hol[d[0]];
+        if (restOnly && !hol && w !== 0 && w !== 6) return;
+        var ym = d[0].slice(0, 7);
+        if (ym !== month) {
+          month = ym;
+          var m = Number(ym.slice(5)) - 1, mm = s.mm ? s.mm[m] : null;
+          var note = mm != null && Math.abs(mm) >= 3
+            ? '例年この月は表より' + Math.abs(mm) + 'cm' + (mm > 0 ? '高め（引きは弱め）' : '低め（よく引く）') : '';
+          rows += '<tr class="cal-m"><th colspan="4">' + ym.slice(0, 4) + '年' + (m + 1) + '月' + (note ? '<span class="note">' + note + '</span>' : '') + '</th></tr>';
+        }
+        var cls = hol || w === 0 ? ' class="hol"' : w === 6 ? ' class="sat"' : '';
+        rows += '<tr' + cls + '><th scope="row">' + ymdLabel(d[0]) + (hol ? ' <span class="note">' + escHtml(hol) + '</span>' : '') + '</th><td>' + d[1] + '</td><td class="rg">' + d[2] + 'cm</td><td>' + escHtml(d[3]) + '</td></tr>';
+        count++;
+      });
+      out.innerHTML = '<p><a href="' + escHtml(s.h) + '">' + escHtml(s.n) + '</a>（' + escHtml(s.p) + '）で明るいうちに大きく引く日：' + count + '日' + (restOnly ? '（土日・祝日のみ）' : '') + '</p>' +
+        (count ? '<div class="tw"><table class="prefsum cal-list"><thead><tr><th>日付</th><th>干潮</th><th>潮位</th><th>潮</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '') +
+        '<p class="note">潮位は気象庁の推算値で、その地点の基準面からの高さです。' + (s.mm ? '月の注記は気象庁の過去10年の実測から求めた平均のずれです。' : 'この地点は実測のずれを集計していないため、月の注記はありません。') + '</p>';
+    }
+
+    function show() {
+      if (!sel.value) return;
+      if (data) { render(); return; }
+      out.innerHTML = '<p class="note">読み込んでいます…</p>';
+      loading = loading || fetch(form.dataset.src).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+      loading.then(function (j) { data = j; render(); })
+        .catch(function () { loading = null; out.innerHTML = '<p class="note">データを読み込めませんでした。時間をおいて試してください。</p>'; });
+    }
+
+    form.elements.r.addEventListener('change', function () { filterStations(); show(); });
+    sel.addEventListener('change', show);
+    form.elements.rest.addEventListener('change', show);
+  }
+
   // 記事内の動画。クリックされるまで YouTube を読み込まず、押されたら
   // youtube-nocookie.com のプレーヤーに差し替える(lib/guide-tsuriaruki.mjs)。
   function youtubeEmbeds() {
@@ -1174,6 +1338,8 @@
     run('offlineCache', offlineCache);
     run('tables', tables);
     run('youtubeEmbeds', youtubeEmbeds);
+    run('depthTool', depthTool);
+    run('shiohigariCalendar', shiohigariCalendar);
   }
 
   if (document.readyState === 'loading') {

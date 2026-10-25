@@ -38,6 +38,8 @@ import { PREF_GUIDES } from './lib/pref-guides.mjs';
 import { esc } from './lib/html.mjs';
 import { stationLabel } from './lib/station-quality.mjs';
 import { stationQuality } from './lib/station-quality.mjs';
+import { DEPTH_SLUG, CALENDAR_SLUG, TOOLS_UPDATED, CALENDAR_DATA, tideDataPath, availableDays, tideJSON, bigLowDays, calendarJSON, depthToolPage, shiohigariCalendarPage } from './lib/tools.mjs';
+import { HOLIDAYS } from './lib/holidays.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(ROOT, 'dist');
@@ -543,6 +545,45 @@ for (const g of GUIDES) {
 write(paths.activityIndex(), activityIndexPage(), { changefreq: 'monthly', priority: 0.4, lastmod: '2026-10-04' });
 for (const a of ACTIVITIES) {
   write(paths.activity(a.slug), activityPage(a, homeRegions, national), { changefreq: 'monthly', priority: 0.5, lastmod: a.updated });
+}
+
+// ---- ツール(水深計算・潮干狩りカレンダー) ---------------------------------
+// 今日から1年分の潮位表が要るので、配信用に読み込んだ年に翌年を足す。
+// 翌年の潮位表がまだ公開されていない時期は、読めた分だけで期間を縮める。
+{
+  const toolStations = stations.filter(s => !s.jmaAnchor);
+  const toolCodes = [...new Set(toolStations.map(s => s.jma))];
+  const toolJma = Object.fromEntries(toolCodes.map(c => [c, { ...jma[c] }]));
+  for (const y of [YEAR, YEAR + 1]) {
+    if (years.includes(y)) continue;
+    try {
+      const extra = await loadYears(toolCodes, [y]);
+      for (const c of toolCodes) Object.assign(toolJma[c], extra[c]);
+    } catch (e) {
+      console.warn(`ツール用の ${y}年 潮位表を読めませんでした: ${e.message}`);
+    }
+  }
+  const nDays = Math.min(...toolCodes.map(c => availableDays(toolJma[c], today, 365)));
+  if (nDays < 60) throw new Error(`ツール用の潮位表が ${nDays} 日分しかありません`);
+  const to = dayKeyOf(addDays(today, nDays - 1));
+
+  for (const c of toolCodes) {
+    const st = toolStations.find(s => s.jma === c);
+    writeJSON(tideDataPath(st), tideJSON(st, toolJma[c], today, nDays));
+  }
+  const tk = toolStations.find(s => s.jma === 'TK') || toolStations[0];
+  write(paths.tool(DEPTH_SLUG), depthToolPage({
+    stations: toolStations, from: todayKey, nDays,
+    example: { st: tk, byDay: toolJma[tk.jma], dayMs: today },
+  }), { changefreq: 'monthly', priority: 0.5, lastmod: TOOLS_UPDATED });
+
+  const calRows = toolStations.map(st => ({ st, big: bigLowDays(st, toolJma[st.jma], today, nDays) }))
+    .filter(x => x.big);
+  writeJSON(CALENDAR_DATA, calendarJSON(calRows, todayKey, to));
+  write(paths.tool(CALENDAR_SLUG), shiohigariCalendarPage({ rows: calRows, from: todayKey, to }),
+    { changefreq: 'monthly', priority: 0.5, lastmod: TOOLS_UPDATED });
+  const missing = Object.keys(HOLIDAYS).at(-1) < to;
+  console.log(`ツール: ${toolCodes.length}観測点 × ${nDays}日 (${todayKey}〜${to})${missing ? ' ※祝日一覧が期間の終わりまでありません(lib/holidays.mjs)' : ''}`);
 }
 
 // ---- sitemap / robots / manifest / llms.txt ---------------------------
