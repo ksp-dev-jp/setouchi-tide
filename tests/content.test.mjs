@@ -48,11 +48,11 @@ test('年間要約と比較図は折りたたみの外で表示される', () =>
   assert.ok(html.slice(details).startsWith('<details class="fold">'));
 });
 
-test('全21記事に図解、参考資料、公開日、著者がある', () => {
+test('全22記事に図解、参考資料、公開日、著者がある', () => {
   const nat = { year:2026, pf: { n:239, avg:124, spring:180, neap:69,
     dayLowMonthCount:Array(12).fill(20), nightLowMonthCount:Array(12).fill(20) },
     regions:[{r:{name:'中国'},pf:{avg:168}}] };
-  assert.equal(GUIDES.length, 21);
+  assert.equal(GUIDES.length, 22);
   for (const g of GUIDES) {
     const html = guidePage(g, nat);
     const { published, modified } = guideDates(g.slug);
