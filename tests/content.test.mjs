@@ -9,6 +9,7 @@ import { stationPage, privacyPage } from '../lib/pages.mjs';
 import { weekTable } from '../lib/components.mjs';
 import { GUIDES, guidePage, guideDates } from '../lib/guides.mjs';
 import { stationNoteSummary, stationNoteChart } from '../lib/station-notes.mjs';
+import { observedBlock } from '../lib/station-observed.mjs';
 
 const st = TIDE_STATIONS.find(s => s.name === '広島' && !s.jmaAnchor);
 const dayMs = dayMsOf('2026-10-01');
@@ -70,4 +71,19 @@ test('プライバシー説明が広告・端末保存・位置情報の実装�
   for (const text of ['IPアドレス','localStorage','ブラウザ内で最寄り','座標を保存せず']) {
     assert.ok(html.includes(text));
   }
+});
+
+test('実測のずれの節は実測のある地点だけに出し、除外地点には順位を付けない', () => {
+  const fold = (title, note, inner) => `<details>${title}${inner}</details>`;
+  const off = name => TIDE_STATIONS.find(s => s.name === name && !s.jmaAnchor);
+  const osaka = observedBlock(off('大阪'), '大阪', fold);
+  assert.match(osaka, /20cm以上ずれた時間は[\d.]+%/);
+  assert.match(osaka, /全国\d+地点のうち、ずれやすいほうから\d+番目/);
+  assert.ok(osaka.includes('/guide/shiomihyo-atari/'));
+  const choshi = observedBlock(off('銚子漁港'), '銚子漁港', fold);
+  assert.ok(!choshi.includes('番目'));
+  assert.ok(choshi.includes('全国の比較には含めていません'));
+  assert.ok(!choshi.includes('2016〜2025年の実測'));
+  assert.equal(observedBlock(off('呉'), '呉', fold), '');
+  assert.equal(observedBlock(TIDE_STATIONS.find(s => s.jmaAnchor), 'x', fold), '');
 });
