@@ -39,13 +39,13 @@ jobs:
           restore-keys: |
             jma-
 
-      # AdSense「有用性の低いコンテンツ」対応。公式観測点だけを配信し、
-      # 日別ページを作らず、月間は当月だけにする。承認されたらこの env
-      # ブロックごと消して元の規模に戻す(config.mjs の LEAN 参照)。
+      # SITE_LEAN: 日別ページを作らず、月間は当月だけにする(config.mjs の LEAN 参照)。
+      # SITE_ALL_STATIONS: 近似地点も含めて全地点を配信する。
       - name: Build
         run: node build.mjs
         env:
           SITE_LEAN: '1'
+          SITE_ALL_STATIONS: '1'
 
       - name: Report size
         run: |

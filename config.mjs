@@ -77,6 +77,9 @@ export const SITE = {
   //   ・広告枠を graph と footer の2つに減らす
   // 地点データもテンプレートも消していないので、環境変数を外せば元に戻る。
   LEAN: process.env.SITE_LEAN === '1',
+  // 近似地点も含めて全地点を配信する(2026-11 に AdSense を断念して再掲載)。
+  // 日別ページや月間の範囲は LEAN のまま変えない。
+  OFFICIAL_ONLY: process.env.SITE_LEAN === '1' && process.env.SITE_ALL_STATIONS !== '1',
 
   // ---- OGP画像 --------------------------------------------------------
   // X/Facebook/Discord などでの共有カード用。`public/og-image.png`

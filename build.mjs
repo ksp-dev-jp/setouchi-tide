@@ -157,7 +157,7 @@ const t0 = Date.now();
 
 validateStations();
 
-// 配信対象は SERVED_STATIONS（SITE.LEAN のときは公式観測点だけ）。
+// 配信対象は SERVED_STATIONS（SITE.OFFICIAL_ONLY のときは公式観測点だけ）。
 // TIDE_STATIONS は「知っている地点の全部」で、スラッグ採番と出典表示に使う。
 const stations = SAMPLE
   ? SERVED_STATIONS.filter(s => s.pref === 'hiroshima')
