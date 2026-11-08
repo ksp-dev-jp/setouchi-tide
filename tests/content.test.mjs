@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { SITE } from '../config.mjs';
 import { GUIDE_EXAMPLE } from '../lib/guide-enrichment.mjs';
 import { movingWindows, flowLabel } from '../lib/tide.mjs';
 import { TIDE_STATIONS } from '../lib/stations.mjs';
@@ -67,7 +68,11 @@ test('全22記事に図解、参考資料、公開日、著者がある', () => 
 });
 
 test('プライバシー説明が広告・端末保存・位置情報の実装を区別する', () => {
+  // 広告の説明は広告を出しているときだけ出る
+  const saved = SITE.ADMAX_SLOTS.footer;
+  SITE.ADMAX_SLOTS.footer = 'x';
   const html = privacyPage();
+  SITE.ADMAX_SLOTS.footer = saved;
   for (const text of ['IPアドレス','localStorage','ブラウザ内で最寄り','座標を保存せず']) {
     assert.ok(html.includes(text));
   }

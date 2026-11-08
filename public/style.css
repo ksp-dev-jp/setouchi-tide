@@ -1485,3 +1485,12 @@ td.cal-bar span { display: block; height: 10px; background: var(--blue); border-
   .tool-form select { max-width: 100%; }
   .tool-form label { flex: 1 1 100%; }
 }
+
+/* ---------- 物販リンク(広告) ---------- */
+.aff { margin: 28px 0 16px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+.aff h2 { font-family: var(--serif); font-size: 17px; margin: 0 0 4px; }
+.aff-pr { display: inline-block; margin-left: 8px; padding: 0 6px; border: 1px solid var(--mut); border-radius: 3px; font-family: var(--sans); font-size: 12px; font-weight: normal; color: var(--mut); vertical-align: 2px; }
+.aff ul { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.aff li a { font-size: 16px; }
+.aff li .note { display: block; margin-top: 2px; font-size: 14.5px; color: var(--mut); line-height: 1.6; }
+.aff img { display: block; width: 1px; height: 1px; }

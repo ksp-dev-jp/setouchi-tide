@@ -289,12 +289,12 @@ if (SITE.CNAME) fs.writeFileSync(path.join(DIST, 'CNAME'), SITE.CNAME + '\n');
 
 // ads.txt はドメイン直下に無いと Google に読まれない。BASE が空(apex 運用)
 // である前提。審査前に無効な ads.txt を置く意味は無いので、広告タグと同じく
-// ADSENSE_CLIENT が空のあいだは出力しない。
-if (SITE.ADSENSE_CLIENT) {
-  const pub = SITE.ADSENSE_CLIENT.replace(/^ca-/, '');
-  fs.writeFileSync(path.join(DIST, 'ads.txt'),
-    `google.com, ${pub}, DIRECT, f08c47fec0942fa0\n`);
-}
+// ADSENSE_CLIENT が空で、ほかの事業者の行(ADS_TXT_EXTRA)も無いあいだは出力しない。
+const adsTxt = [
+  ...(SITE.ADSENSE_CLIENT ? [`google.com, ${SITE.ADSENSE_CLIENT.replace(/^ca-/, '')}, DIRECT, f08c47fec0942fa0`] : []),
+  ...SITE.ADS_TXT_EXTRA,
+];
+if (adsTxt.length) fs.writeFileSync(path.join(DIST, 'ads.txt'), adsTxt.join('\n') + '\n');
 
 // ---- 地点ページ群 ---------------------------------------------------
 const tBuild = Date.now();

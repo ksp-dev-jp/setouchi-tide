@@ -50,17 +50,29 @@ export const SITE = {
   MONTHS_FWD: 12,
 
   // ---- 広告 ---------------------------------------------------------
-  // AdSense の審査に通ったら ADSENSE_CLIENT に ca-pub-... を入れる。
+  // AdSense は 2026-11 にやめた(忍者AdMax に置き換え)。また使うときは
+  // ADSENSE_CLIENT に ca-pub-... を入れる。
   // 空のあいだは枠だけがレイアウトに存在し、広告スクリプトは出力されない
   // (審査前に空の広告タグを置くとポリシー違反になるため)。
   // ads.txt も ADSENSE_CLIENT が入ったときだけ生成される。
-  ADSENSE_CLIENT: process.env.SITE_ADSENSE_CLIENT || 'ca-pub-3910557986459785',
+  ADSENSE_CLIENT: process.env.SITE_ADSENSE_CLIENT || '',
   ADSENSE_SLOTS: {
     header: '3879784223', // ヘッダー下 レスポンシブ
     graph: '4483967615',  // 潮位グラフ直下 レクタングル(300x250)
     footer: '8940539213', // 記事末 レスポンシブ
     side: '3994113104',   // サイド(PCのみ) 300x600
   },
+
+  // 忍者AdMax(審査の緩い国内の広告)の広告枠ID。管理画面で発行される
+  // <script src="https://adm.shinobi.jp/s/xxxxxxxx"> の xxxxxxxx を入れる。
+  // PC/SP 切替タグは URL が /o/ になるので、o/xxxxxxxx の形で入れる。
+  // footer は記事末、side は PC のサイド列(幅300px)。空のあいだは何も出力しない。
+  ADMAX_SLOTS: {
+    footer: process.env.SITE_ADMAX_FOOTER || 'o/3a44df8d02dfb51361249f68c140f185', // 記事末(PC/SP 切替タグ)
+    side: process.env.SITE_ADMAX_SIDE || '5aa148e46cdb8c8c8359ad1522a14b58',     // サイド(1080px以上, PC 300x250)
+  },
+  // AdSense 以外の広告事業者から ads.txt への記載を求められたら、その行をここに足す。
+  ADS_TXT_EXTRA: [],
 
   // ---- 審査対応: 配信するページの絞り込み -------------------------------
   // AdSense は「有用性の低いコンテンツ」でこのサイトを不承認にした(2026-09-08)。

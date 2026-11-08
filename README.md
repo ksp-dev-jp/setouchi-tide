@@ -44,6 +44,7 @@ node build.mjs --sample
 | `scripts/aggregate-genbo.mjs` | 上のキャッシュを地点ごとに集計し `lib/observed-stats.mjs` を書き出す。年が替わって1年分を足すときに `fetch-genbo.mjs --from/--to` と合わせて再実行する |
 | `lib/observed-stats.mjs` | 実測と潮見表のずれの集計（自動生成データ。手で編集しない）。記事 `/guide/shiomihyo-atari/`（`lib/guide-atari.mjs`）が本文の数字をここから組み立てる |
 | `lib/tools.mjs` | 水深計算 `/tool/suishin/` と潮干狩りカレンダー `/tool/shiohigari-calendar/`。ビルドで `data/tide/{コード}.json`（毎時の推算潮位1年分）と `data/shiohigari.json` を書き、計算は `public/app.js` がブラウザで行う |
+| `lib/affiliate.mjs` | 物販リンク（アフィリエイト）の商品候補と表示。`url` を入れた商品だけが「PR」付きで出る |
 | `lib/holidays.mjs` | 国民の祝日（カレンダーの休日の印）。1年先まで無いとテストが落ちるので、年が明けたら翌々年を足す |
 | `scripts/generate-stations/` | OSMデータ（Overpass API）から近似地点候補を取得し `lib/stations.mjs` に追記するパイプライン。`node scripts/generate-stations/index.mjs` で全国分、`--sample <pref>` で1県だけ、`--dry-run` で書き込まずに件数だけ確認できる。再実行すると新規に見つかった分がさらに追記される（既存地点は変更しない）。公開Overpassサーバーは負荷でタグ取得が失敗することがあるが、失敗したタグはスキップして続行する仕様なので、日を改めて再実行すると回収できることがある |
 
@@ -100,6 +101,8 @@ Search Console のアドレス変更ツールは「サブディレクトリ → 
 
 ## 広告
 
+AdSense は 2026-11 にやめて、忍者AdMax に置き換えた。以下の AdSense の説明は、また使うときのためのもの。
+
 `config.mjs` の `ADSENSE_CLIENT` が空のあいだは、広告枠の `div` だけが出て
 スクリプトも `ins` も出力されない（審査前に空の広告タグを置くのはポリシー違反のため）。
 CSS で `.ad:empty { display: none }` としてあるので、有効化するまで枠は画面を占有しない。
@@ -113,3 +116,15 @@ CSS で `.ad:empty { display: none }` としてあるので、有効化するま
 プライバシーポリシー（`/privacy/`）は `ADSENSE_CLIENT` の値によらず常に出力する。
 審査に出す時点で存在している必要があるため。問い合わせ導線は `CONTACT_URL` に
 Google フォームの URL を入れると `/about/` と `/privacy/` の両方に出る。
+
+### 忍者AdMax と物販リンク
+
+どちらも値が空なら何も出力しない。
+
+- 忍者AdMax: `config.mjs` の `ADMAX_SLOTS` に広告枠ID（`adm.shinobi.jp/s/` の後ろ）を入れる。
+  記事末の `footer` と、PC のサイド列（幅300px）の `side` の2枠。
+  `footer` は PC/SP 切替タグで、URL が `/o/` なので `o/xxxxxxxx` の形で入れている。
+  ads.txt への記載を求められたら `ADS_TXT_EXTRA` に行を足す。
+- 物販リンク: `lib/affiliate.mjs` の商品に、管理画面で発行したリンクの `url`（計測画像があれば `pixel`）を入れる。
+  潮干狩り・釣りの用途ページと、ツール2つの出典の下に出る。地点ページには出さない。
+- どちらかを入れると `/privacy/` に該当する節が自動で増える。
