@@ -99,6 +99,14 @@ Let's Encrypt 証明書の発行が通らない。
 Search Console のアドレス変更ツールは「サブディレクトリ → 別ドメイン」の移転を
 正式にサポートしないため使わず、新ドメインでサイトマップを再送信する。
 
+## 集客のためのページ
+
+- 年間潮見表: `/{pref}/{station}/{YYYY}/` と `/tool/shiomihyo-nenkan/`（`lib/year-table.mjs`）。10月から翌年の表に切り替わる。公式観測点だけ。
+- 埋め込み: `/embed/{pref}/{station}/` と `/tool/umekomi/`（`lib/embed.mjs`）。noindex で sitemap に載せない。
+- 潮干狩り場: `/tool/shiohigari-{slug}/`（`lib/shiohigari-spots.mjs`）。開催情報は出典を確認できた前シーズンの実績だけを書く。毎シーズン見直す。
+- 月間ページ: `SITE_INDEX_MONTHS` で公式観測点を当月から N か月先まで検索に出す。
+- X の週1投稿: `node scripts/weekly-x.mjs` で文面を作る（投稿はしない）。
+
 ## 広告
 
 AdSense は 2026-11 にやめて、忍者AdMax に置き換えた。以下の AdSense の説明は、また使うときのためのもの。

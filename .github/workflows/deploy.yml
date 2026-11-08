@@ -41,11 +41,13 @@ jobs:
 
       # SITE_LEAN: 日別ページを作らず、月間は当月だけにする(config.mjs の LEAN 参照)。
       # SITE_ALL_STATIONS: 近似地点も含めて全地点を配信する。
+      # SITE_INDEX_MONTHS: 公式観測点の月間ページを当月から3か月先まで検索に出す。
       - name: Build
         run: node build.mjs
         env:
           SITE_LEAN: '1'
           SITE_ALL_STATIONS: '1'
+          SITE_INDEX_MONTHS: '3'
 
       - name: Report size
         run: |

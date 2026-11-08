@@ -1494,3 +1494,48 @@ td.cal-bar span { display: block; height: 10px; background: var(--blue); border-
 .aff li a { font-size: 16px; }
 .aff li .note { display: block; margin-top: 2px; font-size: 14.5px; color: var(--mut); line-height: 1.6; }
 .aff img { display: block; width: 1px; height: 1px; }
+
+
+/* =====================================================================
+   年間潮見表(印刷用)・埋め込みコード・ホーム画面の案内
+   ===================================================================== */
+@media (min-width: 1080px) {
+  body.year-page.ads main { display: block; max-width: 1180px; }
+  body.year-page.ads .ad-side { display: none; }
+}
+.yt-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 14px 0; }
+.yt-print { font: inherit; font-weight: 600; padding: 9px 16px; border: 1px solid var(--ink2); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.yt-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 22px; margin: 18px 0; }
+.yt-month h2 { font-size: 16px; margin: 0 0 6px; }
+table.yt { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+table.yt th, table.yt td { border-bottom: 1px solid rgba(127, 127, 127, .3); padding: 3px 4px; text-align: left; white-space: nowrap; font-weight: 400; }
+table.yt thead th { font-weight: 600; }
+table.yt i { font-style: normal; font-size: .85em; opacity: .75; margin-left: .35em; }
+table.yt tr.sun th, table.yt tr.sun td:nth-child(2) { color: #c8402f; }
+table.yt tr.sat th, table.yt tr.sat td:nth-child(2) { color: #2a6db5; }
+table.yt td.oh { font-weight: 700; }
+table.yt td.big { font-weight: 700; }
+.yt-links { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 4px 0 10px; }
+@media (max-width: 760px) {
+  .yt-pair { grid-template-columns: minmax(0, 1fr); }
+  table.yt th, table.yt td { padding: 3px 2px; font-size: 12.5px; }
+}
+@media print {
+  .yt-actions, .yt-intro, .crumb, #install-hint, body.year-page .src-note + .more { display: none !important; }
+  body.year-page article.yt-page { max-width: none; }
+  body.year-page .st-hd { margin: 0 0 2mm; }
+  body.year-page h1 { font-size: 14pt; margin: 0; }
+  .yt-legend { font-size: 7.5pt; margin: 0 0 2mm; }
+  /* A4 の印刷幅は約726pxで、上の max-width: 760px に入ってしまうので2列を指定し直す */
+  .yt-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 5mm; margin: 0; break-after: page; break-inside: avoid; }
+  .yt-pair:has(+ .src-note) { break-after: auto; }
+  .yt-month h2 { font-size: 10pt; margin: 0 0 1mm; }
+  table.yt { font-size: 8.5pt; page-break-inside: avoid; }
+  table.yt th, table.yt td { padding: .8mm .6mm; border-color: #999; }
+  table.yt tr.sun th, table.yt tr.sun td:nth-child(2), table.yt tr.sat th, table.yt tr.sat td:nth-child(2) { color: #000; font-weight: 700; }
+}
+.wg-out textarea { width: 100%; font: 13px/1.5 monospace; padding: 8px; color: var(--ink); background: var(--bg); border: 1px solid rgba(127, 127, 127, .5); border-radius: 6px; }
+.install-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 10px 0; padding: 10px 12px; border: 1px solid rgba(127, 127, 127, .4); border-radius: 8px; font-size: 14px; }
+.install-hint p { margin: 0; flex: 1 1 100%; }
+.install-hint button { font: inherit; padding: 6px 12px; border: 1px solid var(--ink2); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
+.install-hint .install-hint-close { border-color: transparent; background: none; }

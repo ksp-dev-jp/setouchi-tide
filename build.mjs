@@ -40,6 +40,10 @@ import { stationLabel } from './lib/station-quality.mjs';
 import { stationQuality } from './lib/station-quality.mjs';
 import { DEPTH_SLUG, CALENDAR_SLUG, TOOLS_UPDATED, CALENDAR_DATA, tideDataPath, availableDays, tideJSON, bigLowDays, calendarJSON, depthToolPage, shiohigariCalendarPage } from './lib/tools.mjs';
 import { HOLIDAYS } from './lib/holidays.mjs';
+import { yearTable, hasYearTable } from './lib/routes.mjs';
+import { yearPage, yearHubPage, YEAR_HUB_SLUG, YEAR_UPDATED } from './lib/year-table.mjs';
+import { embedPage, widgetToolPage, WIDGET_SLUG, WIDGET_UPDATED } from './lib/embed.mjs';
+import { SPOTS, seasonOf, spotDays, spotLinks, spotPage, spotSlug, SPOTS_UPDATED } from './lib/shiohigari-spots.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(ROOT, 'dist');
@@ -137,9 +141,15 @@ for (let i = 0; i < 7; i++) weekList.push(addDays(today, i));
 const monthList = [];
 for (let i = -SITE.MONTHS_BACK; i <= SITE.MONTHS_FWD; i++) monthList.push(addMonths(today, i));
 
+// 検索に出す月間ページ(公式観測点だけ)。近似地点は monthList のまま。
+const indexedMonths = [];
+for (let i = 0; SITE.INDEX_MONTHS && i <= SITE.INDEX_MONTHS; i++) indexedMonths.push(addMonths(today, i));
+const monthsOf = st => (indexedMonths.length && !st.jmaAnchor ? indexedMonths : monthList);
+const isIndexedMonth = st => !SITE.LEAN || (indexedMonths.length > 0 && !st.jmaAnchor);
+
 // 月カレンダーで必要になる全日を含めた、データ取得が要る日の集合
 const neededDays = new Set([...dayList, ...weekList].map(dayKeyOf));
-for (const m of monthList) {
+for (const m of [...monthList, ...indexedMonths]) {
   const d = new Date(m);
   const n = daysInMonth(d.getUTCFullYear(), d.getUTCMonth());
   for (let i = 0; i < n; i++) neededDays.add(dayKeyOf(addDays(m, i)));
@@ -194,6 +204,22 @@ for (const c of codes) {
 // 地点・県・地方の解説文の元になる実測値。今年の潮位表だけで集計する
 // (月間ページを翌年まで出す設定では2年ぶん読み込まれているため)。
 const YEAR = Number(todayKey.slice(0, 4));
+
+// ---- 年間潮見表 --------------------------------------------------------
+// 10月からは翌年の表を出す。翌年の潮位表をまだ読めない時期は、リンクごと出さない。
+const yearTarget = new Date(today).getUTCMonth() >= 9 ? YEAR + 1 : YEAR;
+let yearJma = null;
+try {
+  const yearCodes = [...new Set(stations.filter(s => !s.jmaAnchor).map(s => s.jma))];
+  const loaded = years.includes(yearTarget) ? jma : await loadYears(yearCodes, [yearTarget]);
+  const need = (Date.UTC(yearTarget + 1, 0, 1) - Date.UTC(yearTarget, 0, 1)) / DAY;
+  const short = yearCodes.filter(c => Object.keys(loaded[c] || {}).filter(k => k.startsWith(String(yearTarget))).length < need);
+  if (short.length) throw new Error(`${short.length}観測点で日数が足りません`);
+  yearJma = loaded;
+  yearTable.year = yearTarget;
+} catch (e) {
+  console.warn(`${yearTarget}年の年間潮見表は作りません: ${e.message}`);
+}
 const stationProfiles = new Map();
 for (const st of stations) {
   const sp = stationProfile(jma[st.jma], YEAR);
@@ -394,8 +420,19 @@ for (const st of stations) {
   const apiDays = apiList.map(d => ({ ymd: dayKeyOf(d), cel: cel(d), day: full(d), isToday: d === today }));
   writeJSON(`api/${st.pref}/${stationSlug(st)}.json`, stationApiJSON(st, apiDays));
 
+  // ---- 年間(印刷用) ----
+  if (hasYearTable(st)) {
+    write(paths.year(st, yearTable.year), yearPage({ st, y: yearTable.year, byDay: yearJma[st.jma] }),
+      { changefreq: 'monthly', priority: 0.6, lastmod: YEAR_UPDATED });
+  }
+
+  // ---- 埋め込み(他サイト用) ----
+  write(paths.embed(st), embedPage({ st, day: todayFull, shio: cel(today).shio, dayMs: today }), { sitemap: false });
+
   // ---- 月間 ----
-  for (const m of monthList) {
+  const stMonths = monthsOf(st);
+  const monthIndexed = isIndexedMonth(st);
+  for (const m of stMonths) {
     const md = new Date(m);
     const Y = md.getUTCFullYear(), M0 = md.getUTCMonth();
     const ym = monthKeyOf(m);
@@ -415,7 +452,7 @@ for (const st of stations) {
     while (cells.length % 7) cells.push(null);
 
     const pm = addMonths(m, -1), nm = addMonths(m, 1);
-    const inRange = x => monthList.some(v => v === x);
+    const inRange = x => stMonths.some(v => v === x);
     // 月間カレンダーは気象庁の推算値・天文暦だけで組み立てており、天気予報を
     // 含まない(=毎日は変わらない)ので、月末日(未来月なら today)を lastmod にする。
     const monthEndMs = addDays(m, dim - 1);
@@ -426,16 +463,16 @@ for (const st of stations) {
       fc: forecastFor(st, todayKey),
       prev: inRange(pm) ? { href: paths.month(st, monthKeyOf(pm)), label: `${new Date(pm).getUTCMonth() + 1}月` } : null,
       next: inRange(nm) ? { href: paths.month(st, monthKeyOf(nm)), label: `${new Date(nm).getUTCMonth() + 1}月` } : null,
-      months: monthList.map(x => ({
+      months: stMonths.map(x => ({
         href: paths.month(st, monthKeyOf(x)),
         year: new Date(x).getUTCFullYear(),
         month: new Date(x).getUTCMonth() + 1,
         active: x === m,
       })),
       stats: { maxRange, maxRangeDay, ohshio },
-      noindex: SITE.LEAN,
+      noindex: !monthIndexed,
     }), {
-      changefreq: 'weekly', priority: 0.5, sitemap: !SITE.LEAN,
+      changefreq: 'weekly', priority: 0.5, sitemap: monthIndexed,
       lastmod: dayKeyOf(Math.min(monthEndMs, today)),
     });
   }
@@ -580,7 +617,25 @@ for (const a of ACTIVITIES) {
   const calRows = toolStations.map(st => ({ st, big: bigLowDays(st, toolJma[st.jma], today, nDays) }))
     .filter(x => x.big);
   writeJSON(CALENDAR_DATA, calendarJSON(calRows, todayKey, to));
-  write(paths.tool(CALENDAR_SLUG), shiohigariCalendarPage({ rows: calRows, from: todayKey, to }),
+  // ---- 潮干狩り場ごとのページ ----
+  const season = seasonOf(todayKey);
+  const spotRows = SPOTS.map(spot => {
+    const st = toolStations.find(s => s.jma === spot.jma);
+    if (!st) throw new Error(`潮干狩り場 ${spot.name} の観測点 ${spot.jma} がありません`);
+    const big = bigLowDays(st, toolJma[st.jma], today, nDays);
+    return { spot, st, big, days: big ? spotDays(big, season).length : 0 };
+  }).filter(x => x.big);
+  if (!SAMPLE) for (const x of spotRows) {
+    write(paths.tool(spotSlug(x.spot)), spotPage({ ...x, season, todayKey }), { changefreq: 'monthly', priority: 0.5, lastmod: SPOTS_UPDATED });
+  }
+
+  // ---- 年間潮見表の一覧・埋め込みコードのページ ----
+  if (yearTable.year) {
+    write(paths.tool(YEAR_HUB_SLUG), yearHubPage({ y: yearTable.year, stations: toolStations }), { changefreq: 'monthly', priority: 0.7, lastmod: YEAR_UPDATED });
+  }
+  write(paths.tool(WIDGET_SLUG), widgetToolPage(), { changefreq: 'monthly', priority: 0.5, lastmod: WIDGET_UPDATED });
+
+  write(paths.tool(CALENDAR_SLUG), shiohigariCalendarPage({ rows: calRows, from: todayKey, to, spots: SAMPLE ? '' : spotLinks(spotRows) }),
     { changefreq: 'monthly', priority: 0.5, lastmod: TOOLS_UPDATED });
   const missing = Object.keys(HOLIDAYS).at(-1) < to;
   console.log(`ツール: ${toolCodes.length}観測点 × ${nDays}日 (${todayKey}〜${to})${missing ? ' ※祝日一覧が期間の終わりまでありません(lib/holidays.mjs)' : ''}`);

@@ -92,6 +92,9 @@ export const SITE = {
   // 近似地点も含めて全地点を配信する(2026-11 に AdSense を断念して再掲載)。
   // 日別ページや月間の範囲は LEAN のまま変えない。
   OFFICIAL_ONLY: process.env.SITE_LEAN === '1' && process.env.SITE_ALL_STATIONS !== '1',
+  // LEAN のあいだでも、公式観測点の月間ページを当月から N か月先まで検索に出す。
+  // 0 なら従来どおり(当月だけ・noindex)。
+  INDEX_MONTHS: Number(process.env.SITE_INDEX_MONTHS || 0),
 
   // ---- OGP画像 --------------------------------------------------------
   // X/Facebook/Discord などでの共有カード用。`public/og-image.png`

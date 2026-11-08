@@ -700,6 +700,114 @@
       + '</span><span class="pf">' + escHtml(s.p) + '</span></a></li>';
   }
 
+  // ---- ホーム画面への追加の案内 ----
+  // お気に入りを登録した人にだけ、本文の先頭に一度だけ出す。画面に固定すると
+  // 広告に重なることがあるので(AdMax の規約で禁止)、本文の流れの中に置く。
+  var INSTALL_DISMISS_KEY = 'tide-install-hint-dismissed';
+  var installEvent = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    installEvent = e;
+    installHint();
+  });
+  function installDismissed() {
+    try { return !!localStorage.getItem(INSTALL_DISMISS_KEY); } catch (e) { return true; }
+  }
+  function dismissInstallHint(box) {
+    try { localStorage.setItem(INSTALL_DISMISS_KEY, '1'); } catch (e) { /* 保存できない環境では今回だけ消す */ }
+    box.remove();
+  }
+  function installHint() {
+    if (document.getElementById('install-hint') || installDismissed()) return;
+    if (!readFavorites().length || !window.matchMedia('(max-width: 820px)').matches) return;
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return;
+    var isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    if (!installEvent && !isIos) return;
+    var article = document.querySelector('main > article');
+    if (!article) return;
+    var box = document.createElement('aside');
+    box.id = 'install-hint';
+    box.className = 'install-hint';
+    var text = document.createElement('p');
+    text.textContent = isIos
+      ? 'ホーム画面に追加すると、お気に入りの地点をすぐ開けます。共有ボタンから「ホーム画面に追加」を選んでください。'
+      : 'ホーム画面に追加すると、お気に入りの地点をすぐ開けます。';
+    box.appendChild(text);
+    if (installEvent) {
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.textContent = '追加する';
+      add.addEventListener('click', function () {
+        installEvent.prompt();
+        installEvent.userChoice.then(function () { dismissInstallHint(box); });
+      });
+      box.appendChild(add);
+    }
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'install-hint-close';
+    close.textContent = '閉じる';
+    close.addEventListener('click', function () { dismissInstallHint(box); });
+    box.appendChild(close);
+    article.parentNode.insertBefore(box, article);
+  }
+
+  // ---- 埋め込みコードを作るページ ----
+  function widgetTool() {
+    var form = document.getElementById('wg-tool');
+    if (!form) return;
+    var prefSel = form.elements.p, stSel = form.elements.st, widthSel = form.elements.w;
+    var out = document.getElementById('wg-out'), frame = document.getElementById('wg-frame');
+    var code = document.getElementById('wg-code'), copy = document.getElementById('wg-copy');
+    var base = form.dataset.base || '', list = [];
+    function option(label, value) {
+      var o = document.createElement('option');
+      o.textContent = label;
+      o.value = value;
+      return o;
+    }
+    function render() {
+      var item = list[Number(stSel.value)];
+      if (stSel.value === '' || !item) { out.hidden = true; return; }
+      var path = encodeURI(base + '/embed' + item.h.slice(base.length));
+      var el = document.createElement('iframe');
+      el.setAttribute('src', form.dataset.origin + path);
+      el.setAttribute('width', widthSel.value);
+      el.setAttribute('height', frame.getAttribute('height'));
+      el.setAttribute('style', 'border:0;max-width:100%');
+      el.setAttribute('loading', 'lazy');
+      el.setAttribute('title', item.n + 'の潮見表');
+      code.value = el.outerHTML;
+      frame.src = path;
+      frame.style.width = widthSel.value === '100%' ? '100%' : widthSel.value + 'px';
+      out.hidden = false;
+    }
+    fetch(form.dataset.src).then(function (r) { return r.json(); }).then(function (data) {
+      list = data;
+      var prefs = [];
+      data.forEach(function (x) { if (prefs.indexOf(x.p) < 0) prefs.push(x.p); });
+      prefSel.innerHTML = '';
+      prefSel.appendChild(option('選んでください', ''));
+      prefs.forEach(function (p) { prefSel.appendChild(option(p, p)); });
+      prefSel.disabled = false;
+    });
+    prefSel.addEventListener('change', function () {
+      stSel.innerHTML = '';
+      stSel.appendChild(option('選んでください', ''));
+      list.forEach(function (x, i) { if (x.p === prefSel.value) stSel.appendChild(option(x.n, String(i))); });
+      stSel.disabled = !prefSel.value;
+      render();
+    });
+    stSel.addEventListener('change', render);
+    widthSel.addEventListener('change', render);
+    copy.addEventListener('click', function () {
+      code.select();
+      var done = function () { copy.textContent = 'コピーしました'; };
+      if (navigator.clipboard) navigator.clipboard.writeText(code.value).then(done);
+      else { document.execCommand('copy'); done(); }
+    });
+  }
+
   function favoriteStations() {
     var btn = document.querySelector('[data-favorite-toggle]');
     var raw = document.body.dataset.recent;
@@ -726,6 +834,7 @@
       if (i >= 0) list.splice(i, 1); else list.unshift(station);
       writeFavorites(list);
       paint();
+      installHint();
     });
     paint();
   }
@@ -1340,6 +1449,8 @@
     run('youtubeEmbeds', youtubeEmbeds);
     run('depthTool', depthTool);
     run('shiohigariCalendar', shiohigariCalendar);
+    run('widgetTool', widgetTool);
+    run('installHint', installHint);
   }
 
   if (document.readyState === 'loading') {
