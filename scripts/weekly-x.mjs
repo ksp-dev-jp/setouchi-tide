@@ -17,8 +17,19 @@ import { paths } from '../lib/routes.mjs';
 import { SITE } from '../config.mjs';
 
 const CITIES = [
-  ['東京', 'TK'], ['名古屋', 'NG'], ['大阪', 'OS'], ['呉', 'Q9'], ['博多', 'QF'], ['那覇', 'NH'],
+  // 釣歩記の動画は瀬戸内と西日本が中心なので、その地域に寄せている
+  ['広島', 'Q8'], ['徳山', 'QA'], ['松山', 'MT'], ['神戸', 'KB'], ['博多', 'QF'],
 ];
+
+// 潮回りごとの一言。潮位の cm は観測点ごとに基準面が違って比べられないので、
+// 地点をまたいで比べるのは干満差だけにする。
+const SHIO_NOTE = {
+  大潮: '潮がよく動く週末',
+  中潮: 'ほどよく潮が動く週末',
+  小潮: '潮の動きは小さめの週末',
+  長潮: '潮の動きは小さめの週末',
+  若潮: '潮の動きは小さめの週末',
+};
 const SITE_URL = 'https://japantide.com/';
 
 function nextSaturday(fromMs) {
@@ -57,14 +68,19 @@ const shio2 = celestialData(stations[0].st, sun).shio;
 
 const lines = stations.map(({ label, st }) => {
   const a = dayLow(st, jma[st.jma], sat), b = dayLow(st, jma[st.jma], sun);
-  const v = e => (e ? `${fmtHM(e.time)} ${Math.round(e.level)}cm` : 'なし');
+  const v = e => (e ? `${fmtHM(e.time)} ${Math.round(e.level)}` : 'なし');
   return `${label} ${v(a)}／${v(b)}`;
 });
 
-const post = `【今週末の潮】${fmt(sat)}${shio}・${fmt(sun)}${shio2}
-6〜18時の干潮（土／日）
+// 5地点・土日のうち、干満差がいちばん大きいところ
+const widest = stations.flatMap(({ label, st }) => [[sat, '土曜'], [sun, '日曜']].map(([d, day]) => ({
+  label, day, range: tideDayLight(st, jma[st.jma], d).range,
+}))).reduce((a, b) => (b.range > a.range ? b : a));
+
+const post = `【週末の潮】${fmt(sat)}${shio}・${fmt(sun)}${shio2}
+${SHIO_NOTE[shio]}。干満差は${widest.label}の${widest.day}が最大で${widest.range}cm
+6〜18時の干潮と潮位cm（土／日）
 ${lines.join('\n')}
-全国の潮見表
 ${SITE_URL}`;
 
 const w = weight(post);

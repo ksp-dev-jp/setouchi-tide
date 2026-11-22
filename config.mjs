@@ -122,7 +122,7 @@ export const SITE = {
   CONTACT_URL: process.env.SITE_CONTACT_URL || 'https://forms.gle/H7gvcVnedC7kXVpc6',
 
   // ---- 解析 ---------------------------------------------------------
-  GA_ID: '',                       // 例: 'G-XXXXXXXXXX'
+  GA_ID: process.env.SITE_GA_ID ?? 'G-D4Y7RR297N',
 
   // ---- データ出典 ---------------------------------------------------
   JMA_TXT: 'https://www.data.jma.go.jp/kaiyou/data/db/tide/suisan/txt',
