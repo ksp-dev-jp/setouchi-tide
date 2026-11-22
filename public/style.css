@@ -1539,3 +1539,11 @@ table.yt td.big { font-weight: 700; }
 .install-hint p { margin: 0; flex: 1 1 100%; }
 .install-hint button { font: inherit; padding: 6px 12px; border: 1px solid var(--ink2); border-radius: 6px; background: var(--bg); color: var(--ink); cursor: pointer; }
 .install-hint .install-hint-close { border-color: transparent; background: none; }
+
+/* よくある質問(短く言い切る答え) */
+.faq-list { margin: 0; }
+.faq-list dt { font-weight: 700; margin-top: 14px; }
+.faq-list dt:first-child { margin-top: 0; }
+.faq-list dd { margin: 4px 0 0; line-height: 1.7; }
+.yt-faq { margin-top: 20px; }
+@media print { .yt-faq { display: none; } }

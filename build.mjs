@@ -24,7 +24,7 @@ import {
   daysInMonth, pad2, DAY,
 } from './lib/util.mjs';
 import { SERVED_STATIONS } from './lib/serve-stations.mjs';
-import { paths, abs, pref, region, regionOf, prefStations, regionPrefs, regionStationCount, stationSlug, validateStations } from './lib/routes.mjs';
+import { paths, abs, pref, region, regionOf, prefStations, regionPrefs, regionStationCount, stationSlug, legacyStationSlug, validateStations } from './lib/routes.mjs';
 import {
   stationPage, dayPage, weekPage, monthPage, prefPage, regionPage, homePage, aboutPage,
   privacyPage, notFoundPage,
@@ -35,7 +35,7 @@ import { stationApiJSON } from './lib/api.mjs';
 import { areaProfile, stationProfile, highTideLag } from './lib/tide-profile.mjs';
 import { stationNoteHtml, stationNoteSummary, stationNoteChart } from './lib/station-notes.mjs';
 import { PREF_GUIDES } from './lib/pref-guides.mjs';
-import { esc } from './lib/html.mjs';
+import { esc, redirectPage } from './lib/html.mjs';
 import { stationLabel } from './lib/station-quality.mjs';
 import { stationQuality } from './lib/station-quality.mjs';
 import { DEPTH_SLUG, CALENDAR_SLUG, TOOLS_UPDATED, CALENDAR_DATA, tideDataPath, availableDays, tideJSON, bigLowDays, calendarJSON, depthToolPage, shiohigariCalendarPage } from './lib/tools.mjs';
@@ -43,6 +43,7 @@ import { HOLIDAYS } from './lib/holidays.mjs';
 import { yearTable, hasYearTable } from './lib/routes.mjs';
 import { yearPage, yearHubPage, YEAR_HUB_SLUG, YEAR_UPDATED } from './lib/year-table.mjs';
 import { embedPage, widgetToolPage, WIDGET_SLUG, WIDGET_UPDATED } from './lib/embed.mjs';
+import { stationFaq } from './lib/faq.mjs';
 import { SPOTS, seasonOf, spotDays, spotLinks, spotPage, spotSlug, SPOTS_UPDATED } from './lib/shiohigari-spots.mjs';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -348,11 +349,19 @@ for (const st of stations) {
   }));
 
   const neighbors = neighborsOf(st, stations);
+  // よくある質問用: 今日から30日分。読み込んだ年の外に出たらそこで止める。
+  const ahead = [];
+  for (let i = 0; i < 30; i++) {
+    const d = addDays(today, i), l = light(d);
+    if (!l) break;
+    ahead.push({ ms: d, shio: cel(d).shio, day: l });
+  }
   write(paths.station(st), stationPage({
     st, day: todayFull, cel: cel(today), ymd: todayKey, dayMs: today,
     weekRows,
     neighbors,
     profile: stationNoteFor(st, neighbors),
+    faq: stationFaq({ st, day: todayFull, shio: cel(today).shio, dayMs: today, ahead }),
     fc: forecastFor(st, todayKey),
     // 日別ページを作らない設定では「この日を詳しく」もグラフの前日/翌日も出さない。
     dayHref: dayPageKeys.has(todayKey) ? paths.day(st, todayKey) : null,
@@ -475,6 +484,19 @@ for (const st of stations) {
       changefreq: 'weekly', priority: 0.5, sitemap: monthIndexed,
       lastmod: dayKeyOf(Math.min(monthEndMs, today)),
     });
+  }
+
+  // ---- 旧 URL からの転送(沿岸補完地点の改名) ----
+  // 補完番号の URL(例: /miyazaki/宮崎県沿岸-補完021/)を地名の URL へ送る。
+  // 検索結果・お気に入り・他サイトの埋め込みに残った旧 URL を切らさないため。
+  const old = legacyStationSlug(st);
+  if (old) {
+    const go = (from, to) => write(from, redirectPage(to, SITE.ORIGIN + encodePath(to)), { sitemap: false });
+    go(url(st.pref, old), paths.station(st));
+    go(url(st.pref, old, 'week'), paths.week(st));
+    go(url('embed', st.pref, old), paths.embed(st));
+    for (const m of stMonths) go(url(st.pref, old, monthKeyOf(m)), paths.month(st, monthKeyOf(m)));
+    writeJSON(`api/${st.pref}/${old}.json`, stationApiJSON(st, apiDays));
   }
 
   if (++n % 25 === 0) process.stdout.write(`\r  地点 ${n}/${stations.length}  ページ ${written}`);
